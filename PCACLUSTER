@@ -1,0 +1,175 @@
+##### 0. IMPORTAR DATOS -CARGAR LIBRERIAS #####
+library(ade4)
+library(factoextra)
+library("FactoMineR")
+library("corrplot")
+library(cluster)
+library(ggplot2)
+library(readxl)
+PDV <- read_excel("C:/Users/marce/Documents/ESPECIALIZACION/ESTADISTICA APLICADA A LOS NEGOCIOS/SEMESTRE II/
+ANALISIS MULTIVARIADO/TRABAJO FINAL/Motos Vendidas por PDV.XLSX")
+View(PDV)
+AnalisisExploratiorio<-summary(PDV)
+windows()
+boxplot(PDV[,c("Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto",
+              "Septiembre","Octubre","Noviembre","Diciembre")],names=c("Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto",
+              "Septiembre","Octubre","Noviembre","Diciembre"),ylab="Ventas", main="Ventas motos nuevas 2.019", 
+              border = c("Yellow","blue","green","red","violetred4","darkmagenta","darkorange","darkslategray4","indianred3",
+              "mediumaquamarine","springgreen3","steelblue4"))
+
+apply(PDV,2,var)
+##### 1. ESTANDARIZACIÓN DE LOS DATOS #####
+##### Matriz de Covarianzas####
+CPDV<-cov(PDV[,2:13])
+View(CPDV)
+#### Función de la desviación estandar sobre n ####
+sd2 <- function (PDV) {
+  sqrt(sum((PDV - mean(PDV))^2) / (length(PDV)))
+}
+sd2(PDV$Enero)
+K1<-(PDV$Enero-mean(PDV$Enero))/sd2(PDV$Enero) 
+K2<-(PDV$Febrero-mean(PDV$Febrero))/sd2(PDV$Febrero) 
+K3<-(PDV$Marzo-mean(PDV$Marzo))/sd2(PDV$Marzo)
+K4<-(PDV$Abril-mean(PDV$Abril))/sd2(PDV$Abril)
+K5<-(PDV$Mayo-mean(PDV$Mayo))/sd2(PDV$Mayo)
+K6<-(PDV$Junio-mean(PDV$Junio))/sd2(PDV$Junio)
+K7<-(PDV$Julio-mean(PDV$Julio))/sd2(PDV$Julio)
+K8<-(PDV$Agosto-mean(PDV$Agosto))/sd2(PDV$Agosto)
+K9<-(PDV$Septiembre-mean(PDV$Septiembre))/sd2(PDV$Septiembre)
+K10<-(PDV$Octubre-mean(PDV$Octubre))/sd2(PDV$Octubre)
+K11<-(PDV$Noviembre-mean(PDV$Noviembre))/sd2(PDV$Noviembre)
+K12<-(PDV$Diciembre-mean(PDV$Diciembre))/sd2(PDV$Diciembre)
+
+##### Matriz de correlación ######
+K <- matrix(c(K1,K2,K3,K4,K5,K6,K7,K8,K9,K10,K11,K12),91,12)
+colnames(K)<-c("Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto",
+               "Septiembre","Octubre","Noviembre","Diciembre")
+rownames(K)<-PDV$PuntoVenta
+View(K)
+corK <- cor(K)
+View(corK)
+x11()
+corrplot.mixed(corK)
+
+######2. VALORES Y VECTORES PROPIOS ########
+acpK <- dudi.pca(K,nf=12,scannf=FALSE)
+acpK$cw
+acpK$eig ## valores propios
+acpK$c1 ## vectores propios 
+acpK$li ## componentes principales de los individuos
+acpK$co  ## componentes principales variables###
+View(acpK$co)
+View(acpK$li)
+
+######SCREE PLOT: VALORES PROPIOS EN COMPONENTES###
+res.pca <- PCA(PDV[,2:13], graph = FALSE)
+eig.val <- get_eigenvalue(res.pca)
+eig.val
+View(eig.val)
+x11()
+fviz_screeplot(acpK, addlabels = TRUE, ylim = c(0, 100), xlim=c(1,10))
+
+#### 3. ANALISIS GRAFICO#####
+###NUBE INDIVIDUOS######
+windows()
+fviz_pca_ind(acpK,repel=TRUE, 
+             axes = c(1,2),geom = c("point","text"),
+             col.ind ="maroon4",pointsize=1)
+
+####CIRCULO DE CORRELACIONES####
+windows()
+fviz_pca_var(acpK, col.var = "cos2", 
+             geom = c("arrow","text"), 
+             labelsize = 3, 
+             repel = TRUE)    
+
+#####REPRESENTACION SIMULTANEA INDIVIDUOS Y VARIABLES BIPLOT####
+x11()            
+fviz_pca_biplot(acpK, repel = TRUE,
+               col.ind = "gray71",
+               col.var = "red3")
+
+##4. CONTRIBUCIONES Y COSENOS2########
+
+###CONTRIBUCIONES INDIVIDUOS####
+x11()
+fviz_pca_ind(acpK,repel=TRUE, col.ind = "contrib",
+             gradient.cols = c("gray87", "#2E9FDF", "#FC4E07")) 
+Inercia<-inertia.dudi(acpK, row.inertia = TRUE,col.inertia = TRUE)
+x11()
+fviz_pca_contrib(acpK, choice = "ind",axes = 1, top = 15)
+fviz_pca_contrib(acpK, choice = "ind",axes = 2, top = 15)
+fviz_pca_contrib(acpK, choice = "ind",axes = 1:2, top = 10)
+Inercia$row.abs ##contribuciones indiviuos ###
+
+#####COSENOS CUADRADOS INDIVIDUOS#####
+###Cosenos cuadrados o contribuciones relativas ######
+Inercia$row.rel 
+X11()
+fviz_pca_ind(acpK, col.ind = "cos2",
+             gradient.cols = c("blue", "yellow", "red"),
+             repel = TRUE)          
+x11()            
+fviz_cos2(acpK, choice = "ind", axes = 1, top = 15)          
+fviz_pca_contrib(acpK, choice="ind", axes = 1)
+fviz_pca_contrib(acpK, choice="ind", axes = 2)
+
+###CONTRIBUCIONES VARIABLES####
+#####Contribuciones VARIABLES####
+x11()
+fviz_pca_var(acpK, col.var = "cos2",pointsize="cos2", 
+             gradient.cols = c("gray87", "#2E9FDF", "#FC4E07"), 
+             labelsize = 4,repel = TRUE) 
+             
+fviz_pca_contrib(acpK, choice = "var",axes = 1, repel=TRUE)
+fviz_pca_contrib(acpK, choice = "var",axes = 2, repel=TRUE)
+
+Inercia$col.abs
+View(Inercia$col.abs)
+
+x11()
+corrplot(res.pca$var$cos2, is.corr=FALSE) 
+View(acpK)
+
+#######5. CLUSTER #####
+##### kMEANS #####
+X11()
+fviz_nbclust(K, kmeans, method = "wss", linecolor = "red")
+set.seed(123)
+K.res <- kmeans(K, 4)
+dist(K)
+x11()
+fviz_cluster(K.res, data =K, palette = "jco", repel = TRUE,
+             ggtheme = theme_minimal())
+
+res.hcpc <- HCPC(res.pca, graph = FALSE) 
+fviz_dend(res.hcpc, 
+          cex = 0.7,                     
+          palette = "jco",               
+          rect = TRUE, rect_fill = TRUE, 
+          rect_border = "jco",           
+          labels_track_height = 0.8)     
+X11()
+fviz_cluster(res.hcpc,     ##Factor Map####
+             repel = TRUE,            
+             show.clust.cent = TRUE, 
+             palette = "jco",         
+             ggtheme = theme_minimal(),
+             main = "Factor map")
+
+Detalle1<-res.hcpc$data.clust
+View(Detalle1)
+res.hcpc$desc.var$quanti
+res.hcpc$desc.axes$quanti
+res.hcpc$desc.ind$para
+
+#######INDICE########
+T <- acpK$li ## Componentes principales
+acpK(-1)*T[,1] ## Entre más positivo mayor su nivel de venta####
+View(T)
+## Reescalamiento de 0 a 100###
+IndiceT <- ((-1)*T[,1] - min((-1)*T[,1]))*100/(max((-1)*T[,1])-min((-1)*T[,1]))
+View(IndiceT)
+X11()
+qplot(R2$X,R2$Y,geom = c("point","text"),colour=R2$Y, size=R2$Y, main = "Indice de venyas por PDV", label=rownames(R2))
+qplot(seq(1:91),IndiceT,geom = c("point","text"),colour=IndiceT, size=IndiceT, main = "Indice de Ingresos por PDV")
